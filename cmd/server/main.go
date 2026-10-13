@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -18,13 +19,21 @@ func newHandler() http.Handler {
 }
 
 func main() {
+	config, err := loadAuthConfig(os.Getenv)
+	if err != nil {
+		log.Fatal(err)
+	}
+	verifier, err := newOIDCVerifier(context.Background(), config)
+	if err != nil {
+		log.Fatal(err)
+	}
 	addr := os.Getenv("ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           newHandler(),
+		Handler:           newAuthHandler(verifier),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("listening on %s", addr)
